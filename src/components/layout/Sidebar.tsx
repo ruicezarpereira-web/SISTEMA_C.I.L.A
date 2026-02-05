@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -10,6 +10,7 @@ import {
   LogOut,
   Award,
   ChevronDown,
+   Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -36,18 +37,8 @@ const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Servidores", href: "/servidores", icon: Users },
   { label: "Processos", href: "/processos", icon: FolderOpen },
-  {
-    label: "Documentos",
-    href: "/documentos",
-    icon: FileText,
-    children: [
-      { label: "Certidões", href: "/documentos/certidoes" },
-      { label: "Portarias", href: "/documentos/portarias" },
-      { label: "Mapas de Cálculo", href: "/documentos/mapas" },
-    ],
-  },
+   { label: "Importar Dados", href: "/importar", icon: Upload, adminOnly: true },
   { label: "Configurações", href: "/configuracoes", icon: Settings, adminOnly: true },
-  { label: "Logs", href: "/logs", icon: ClipboardList, adminOnly: true },
   { label: "Usuários", href: "/usuarios", icon: UserCog, adminOnly: true },
 ];
 

@@ -1,29 +1,20 @@
-import { Outlet, useNavigate } from "react-router-dom";
+ import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
+ import { useAuth } from "@/contexts/AuthContext";
 
 export function AppLayout() {
-  const navigate = useNavigate();
-  
-  // Mock user data - will be replaced with real auth
-  const user = {
-    nome: "Admin TRANSALVADOR",
-    role: 'admin' as const,
-  };
-
-  const handleLogout = () => {
-    navigate('/login');
-  };
+   const { profile, role, signOut, isAdmin } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar isAdmin={user.role === 'admin'} onLogout={handleLogout} />
+       <Sidebar isAdmin={isAdmin} onLogout={signOut} />
       
       <div className="pl-64">
         <Header
-          userName={user.nome}
-          userRole={user.role}
-          onLogout={handleLogout}
+           userName={profile?.nome || 'Usuário'}
+           userRole={role || 'rh'}
+           onLogout={signOut}
         />
         
         <main className="p-6">

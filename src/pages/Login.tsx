@@ -1,15 +1,18 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+ import { useState, useEffect } from "react";
+ import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Award, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+ import { useAuth } from "@/contexts/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+   const location = useLocation();
   const { toast } = useToast();
+   const { signIn, user, isLoading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,27 +20,37 @@ export default function Login() {
     password: "",
   });
 
+   const from = (location.state as any)?.from?.pathname || "/dashboard";
+ 
+   useEffect(() => {
+     if (user && !authLoading) {
+       navigate(from, { replace: true });
+     }
+   }, [user, authLoading, navigate, from]);
+ 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulated login - will be replaced with Supabase auth
-    setTimeout(() => {
-      if (formData.email && formData.password) {
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo ao Sistema de Licenças Prêmio",
-        });
-        navigate("/dashboard");
-      } else {
-        toast({
-          title: "Erro no login",
-          description: "Verifique suas credenciais e tente novamente.",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 1000);
+     const { error } = await signIn(formData.email, formData.password);
+ 
+     if (error) {
+       toast({
+         title: "Erro no login",
+         description: error.message === "Invalid login credentials" 
+           ? "Email ou senha incorretos." 
+           : error.message,
+         variant: "destructive",
+       });
+       setIsLoading(false);
+       return;
+     }
+ 
+     toast({
+       title: "Login realizado com sucesso!",
+       description: "Bem-vindo ao Sistema de Licenças Prêmio",
+     });
+     setIsLoading(false);
   };
 
   return (
