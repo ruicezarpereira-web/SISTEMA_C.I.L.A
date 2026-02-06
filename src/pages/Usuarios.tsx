@@ -81,53 +81,45 @@
      },
    });
  
-   const createUser = useMutation({
-     mutationFn: async (userData: typeof newUser) => {
-       // Create user via Supabase Auth
-       const { data: authData, error: authError } = await supabase.auth.signUp({
-         email: userData.email,
-         password: userData.password,
-         options: {
-           emailRedirectTo: window.location.origin,
-           data: { nome: userData.nome },
-         },
-       });
- 
-       if (authError) throw authError;
-       if (!authData.user) throw new Error('Falha ao criar usuário');
- 
-       // Add role
-       const { error: roleError } = await supabase
-         .from('user_roles')
-         .insert({
-           user_id: authData.user.id,
-           role: userData.role,
-         });
- 
-       if (roleError) throw roleError;
- 
-       // Log activity
-       await supabase.from('logs_atividade').insert({
-         tipo_acao: 'USUARIO_CRIADO',
-         detalhes: `Usuário ${userData.email} criado com perfil ${userData.role}`,
-       });
- 
-       return authData.user;
-     },
-     onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
-       toast({ title: "Usuário criado com sucesso!" });
-       setIsDialogOpen(false);
-       setNewUser({ email: '', nome: '', password: '', role: 'rh' });
-     },
-     onError: (error: Error) => {
-       toast({ 
-         title: "Erro ao criar usuário", 
-         description: error.message, 
-         variant: "destructive" 
-       });
-     },
-   });
+  const createUser = useMutation({
+    mutationFn: async (userData: typeof newUser) => {
+      // Use edge function to create user (avoids session switch issue)
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify(userData),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || "Erro ao criar usuário");
+      }
+
+      return result.user;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      toast({ title: "Usuário criado com sucesso!", description: "O usuário deve alterar a senha no primeiro acesso." });
+      setIsDialogOpen(false);
+      setNewUser({ email: '', nome: '', password: '', role: 'rh' });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Erro ao criar usuário", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    },
+  });
  
    const handleCreateUser = () => {
      if (!newUser.email || !newUser.nome || !newUser.password) {
