@@ -1,32 +1,90 @@
- import { useState, useEffect } from "react";
- import { useNavigate, useLocation } from "react-router-dom";
-import { Eye, EyeOff, Award, Lock, Mail } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Eye, EyeOff, Award, Lock, Mail, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
- import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
   const navigate = useNavigate();
-   const location = useLocation();
+  const location = useLocation();
   const { toast } = useToast();
-   const { signIn, user, isLoading: authLoading } = useAuth();
+  const { signIn, user, isLoading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [showInitButton, setShowInitButton] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-   const from = (location.state as any)?.from?.pathname || "/dashboard";
- 
-   useEffect(() => {
-     if (user && !authLoading) {
-       navigate(from, { replace: true });
-     }
-   }, [user, authLoading, navigate, from]);
+  const from = (location.state as any)?.from?.pathname || "/dashboard";
+
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate(from, { replace: true });
+    }
+  }, [user, authLoading, navigate, from]);
+
+  // Check if system needs initialization (no users exist)
+  useEffect(() => {
+    const checkInitialization = async () => {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      setShowInitButton(count === 0);
+    };
+    checkInitialization();
+  }, []);
+
+  const handleInitializeSystem = async () => {
+    setIsInitializing(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-admin`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.exists) {
+        toast({
+          title: "Sistema já inicializado",
+          description: "O usuário master já existe no sistema",
+        });
+      } else if (result.created) {
+        toast({
+          title: "Sistema inicializado!",
+          description: "Login: admin@transalvador.gov.br | Senha: 123456",
+        });
+        setFormData({
+          email: "admin@transalvador.gov.br",
+          password: "123456",
+        });
+      } else {
+        throw new Error(result.error || "Erro desconhecido");
+      }
+      
+      setShowInitButton(false);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao inicializar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsInitializing(false);
+    }
+  };
  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,6 +216,29 @@ export default function Login() {
                   "Entrar"
                 )}
               </Button>
+
+              {showInitButton && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full" 
+                  size="lg" 
+                  onClick={handleInitializeSystem}
+                  disabled={isInitializing}
+                >
+                  {isInitializing ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      Inicializando...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      Inicializar Sistema (Primeiro Acesso)
+                    </div>
+                  )}
+                </Button>
+              )}
             </form>
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
