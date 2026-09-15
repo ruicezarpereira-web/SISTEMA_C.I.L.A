@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789505522215,
+      "tag": "0000_cila_modelo_dados_ru_quinquenios_ocorrencias_gozos",
+      "breakpoints": true
+    }
+  ]
+}

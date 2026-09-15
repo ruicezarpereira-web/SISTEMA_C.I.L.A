@@ -170,6 +170,47 @@ export type Database = {
         }
         Relationships: []
       }
+      gozos: {
+        Row: {
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          dias: number
+          id: string
+          numero_periodo: number
+          observacoes: string | null
+          quinquenio_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          dias: number
+          id?: string
+          numero_periodo: number
+          observacoes?: string | null
+          quinquenio_id: string
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          dias?: number
+          id?: string
+          numero_periodo?: number
+          observacoes?: string | null
+          quinquenio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gozos_quinquenio_id_fkey"
+            columns: ["quinquenio_id"]
+            isOneToOne: false
+            referencedRelation: "quinquenios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       logs_atividade: {
         Row: {
           data_hora: string
@@ -199,6 +240,85 @@ export type Database = {
           usuario?: string | null
         }
         Relationships: []
+      }
+      matriculas_historico: {
+        Row: {
+          created_at: string
+          id: string
+          matricula: string
+          servidor_id: string
+          vigente_ate: string | null
+          vigente_de: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          matricula: string
+          servidor_id: string
+          vigente_ate?: string | null
+          vigente_de?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          matricula?: string
+          servidor_id?: string
+          vigente_ate?: string | null
+          vigente_de?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matriculas_historico_servidor_id_fkey"
+            columns: ["servidor_id"]
+            isOneToOne: false
+            referencedRelation: "servidores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocorrencias: {
+        Row: {
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          dias_acrescimo: number
+          documento_referencia: string | null
+          id: string
+          observacoes: string | null
+          servidor_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          dias_acrescimo?: number
+          documento_referencia?: string | null
+          id?: string
+          observacoes?: string | null
+          servidor_id: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          dias_acrescimo?: number
+          documento_referencia?: string | null
+          id?: string
+          observacoes?: string | null
+          servidor_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocorrencias_servidor_id_fkey"
+            columns: ["servidor_id"]
+            isOneToOne: false
+            referencedRelation: "servidores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       processos: {
         Row: {
@@ -286,6 +406,76 @@ export type Database = {
         }
         Relationships: []
       }
+      quinquenios: {
+        Row: {
+          afetado_lc_173_2020: boolean
+          created_at: string
+          data_fim_ajustada: string
+          data_fim_base: string
+          data_inicio: string
+          dias_acrescimo: number
+          id: string
+          numero: number
+          processo_id: string | null
+          retifica_quinquenio_id: string | null
+          servidor_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          afetado_lc_173_2020?: boolean
+          created_at?: string
+          data_fim_ajustada: string
+          data_fim_base: string
+          data_inicio: string
+          dias_acrescimo?: number
+          id?: string
+          numero: number
+          processo_id?: string | null
+          retifica_quinquenio_id?: string | null
+          servidor_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          afetado_lc_173_2020?: boolean
+          created_at?: string
+          data_fim_ajustada?: string
+          data_fim_base?: string
+          data_inicio?: string
+          dias_acrescimo?: number
+          id?: string
+          numero?: number
+          processo_id?: string | null
+          retifica_quinquenio_id?: string | null
+          servidor_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quinquenios_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquenios_retifica_quinquenio_id_fkey"
+            columns: ["retifica_quinquenio_id"]
+            isOneToOne: false
+            referencedRelation: "quinquenios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quinquenios_servidor_id_fkey"
+            columns: ["servidor_id"]
+            isOneToOne: false
+            referencedRelation: "servidores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       servidores: {
         Row: {
           cargo: string | null
@@ -300,7 +490,7 @@ export type Database = {
           lotacao: string | null
           matricula: string
           nome: string
-          registro_unico: string | null
+          registro_unico: string
           rg: string | null
           sexo: string | null
           telefone: string | null
@@ -320,7 +510,7 @@ export type Database = {
           lotacao?: string | null
           matricula: string
           nome: string
-          registro_unico?: string | null
+          registro_unico: string
           rg?: string | null
           sexo?: string | null
           telefone?: string | null
@@ -340,7 +530,7 @@ export type Database = {
           lotacao?: string | null
           matricula?: string
           nome?: string
-          registro_unico?: string | null
+          registro_unico?: string
           rg?: string | null
           sexo?: string | null
           telefone?: string | null
@@ -385,6 +575,10 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_rh: { Args: never; Returns: boolean }
+      recalcular_quinquenio: {
+        Args: { _quinquenio_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "rh"
