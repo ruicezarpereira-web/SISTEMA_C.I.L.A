@@ -65,34 +65,32 @@
    doc.text('DEMONSTRATIVO DE QUINQUÊNIOS', margin, y);
    y += 5;
  
-   const tableData = quinquenios.map(q => [
-     `${q.numero}º`,
-     format(q.dataInicio, 'dd/MM/yyyy'),
-     format(q.dataFim, 'dd/MM/yyyy'),
-     q.diasCorridos.toString(),
-     q.faltas.diasDesconto.toString(),
-     q.atestados.diasDesconto.toString(),
-     q.totalDescontos.toString(),
-     q.diasLiquidos.toString(),
-     q.resultado,
-   ]);
- 
-   autoTable(doc, {
-     startY: y,
-     head: [['Quinq.', 'Início', 'Fim', 'Dias', 'Faltas', 'Atestados', 'Desc.', 'Líquido', 'Resultado']],
-     body: tableData,
-     theme: 'grid',
-     headStyles: { fillColor: [30, 58, 138], fontSize: 8 },
-     bodyStyles: { fontSize: 8 },
-     columnStyles: {
-       0: { cellWidth: 15 },
-       8: { fontStyle: 'bold' },
-     },
-   });
- 
-   // Summary
-   const finalY = (doc as any).lastAutoTable.finalY + 15;
-   const deferidos = quinquenios.filter(q => q.resultado === 'DEFERIDO').length;
+  const tableData = quinquenios.map(q => [
+    `${q.numero}º`,
+    format(q.dataInicio, 'dd/MM/yyyy'),
+    format(q.dataFimBase, 'dd/MM/yyyy'),
+    q.diasAcrescimo.toString(),
+    format(q.dataFimAjustada, 'dd/MM/yyyy'),
+    q.status,
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Quinq.', 'Início', 'Fim base', 'Acréscimo', 'Fim ajustado', 'Situação']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: { fillColor: [30, 58, 138], fontSize: 8 },
+    bodyStyles: { fontSize: 8 },
+    columnStyles: {
+      0: { cellWidth: 15 },
+      5: { fontStyle: 'bold' },
+    },
+  });
+
+  // Summary
+  const finalY = (doc as any).lastAutoTable.finalY + 15;
+  const deferidos = quinquenios.filter(q => q.status === 'DEFERIDO').length;
+
  
    doc.setFont('helvetica', 'bold');
    doc.text(`Total de quinquênios deferidos: ${deferidos}`, margin, finalY);
