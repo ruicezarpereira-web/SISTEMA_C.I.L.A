@@ -53,10 +53,6 @@ export function acrescimoDoTipo(tipo: string): number {
   return ACRESCIMO_POR_TIPO[tipo as TipoOcorrencia] ?? 1;
 }
 
-/** Vigência da LC 173/2020 (suspensão de contagem para fins remuneratórios). */
-const LC_173_INICIO = parseISO('2020-05-28');
-const LC_173_FIM = parseISO('2021-12-31');
-
 export interface OcorrenciaInput {
   id?: string;
   tipo: string;
