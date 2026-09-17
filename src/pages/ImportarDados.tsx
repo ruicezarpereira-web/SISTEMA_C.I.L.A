@@ -33,11 +33,14 @@
      setResult(null);
  
      try {
-       let data: any[] = [];
-       
-       if (activeTab === 'servidores') {
-         data = await parseServidoresExcel(file);
-       } else if (activeTab === 'faltas') {
+      let data: any[] = [];
+      const errosValidacao: string[] = [];
+
+      if (activeTab === 'servidores') {
+        const parsed = await parseServidoresExcel(file);
+        data = parsed.servidores;
+        errosValidacao.push(...parsed.erros);
+      } else if (activeTab === 'faltas') {
          data = await parseFaltasExcel(file);
        } else if (activeTab === 'afastamentos') {
          data = await parseAfastamentosExcel(file);
