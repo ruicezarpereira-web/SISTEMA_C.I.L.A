@@ -4,9 +4,9 @@
    nome: string;
    data_nascimento: string | null;
    sexo: string | null;
-   matricula: string;
-   registro_unico: string | null;
-   rg: string | null;
+  matricula: string;
+  registro_unico: string;
+  rg: string | null;
    cpf: string | null;
    data_admissao: string;
    cargo: string | null;
@@ -77,27 +77,58 @@
    return 'OUTROS';
  }
  
- export async function parseServidoresExcel(file: File): Promise<ServidorImport[]> {
-   const data = await file.arrayBuffer();
-   const workbook = XLSX.read(data);
-   const sheetName = workbook.SheetNames[0];
-   const worksheet = workbook.Sheets[sheetName];
-   const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
- 
-   return jsonData.map((row: any) => ({
-     nome: row['Nome'] || row['NOME'] || row['nome'] || '',
-     data_nascimento: parseDate(row['Data Nascimento'] || row['DATA_NASCIMENTO'] || row['data_nascimento']),
-     sexo: (row['Sexo'] || row['SEXO'] || row['sexo'] || '').substring(0, 1).toUpperCase() || null,
-     matricula: String(row['Matricula'] || row['MATRICULA'] || row['matricula'] || ''),
-     registro_unico: row['Registro Único'] || row['REGISTRO_UNICO'] || row['registro_unico'] || null,
-     rg: row['RG'] || row['rg'] || null,
-     cpf: row['CPF'] || row['cpf'] || null,
-     data_admissao: parseDate(row['Data Admissão'] || row['DATA_ADMISSAO'] || row['data_admissao']) || new Date().toISOString().split('T')[0],
-     cargo: row['Cargo'] || row['CARGO'] || row['cargo'] || null,
-     lotacao: row['Lotação'] || row['LOTACAO'] || row['lotacao'] || null,
-     vinculo: row['Vínculo'] || row['VINCULO'] || row['vinculo'] || null,
-   })).filter(s => s.matricula && s.nome);
- }
+export interface ServidoresParseResult {
+  servidores: ServidorImport[];
+  erros: string[];
+}
+
+/**
+ * Lê a planilha de servidores. O Registro Único (RU) é obrigatório: linhas sem
+ * RU não são importadas e são reportadas em `erros`, sem interromper as demais.
+ */
+export async function parseServidoresExcel(file: File): Promise<ServidoresParseResult> {
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data);
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+  const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+
+  const servidores: ServidorImport[] = [];
+  const erros: string[] = [];
+
+  jsonData.forEach((row: any, index: number) => {
+    const linha = index + 2; // linha 1 = cabeçalho
+    const nome = row['Nome'] || row['NOME'] || row['nome'] || '';
+    const matricula = String(row['Matricula'] || row['MATRICULA'] || row['matricula'] || '').trim();
+    const ruBruto = row['Registro Único'] ?? row['REGISTRO_UNICO'] ?? row['registro_unico'] ?? null;
+    const registroUnico = ruBruto === null || ruBruto === undefined ? '' : String(ruBruto).trim();
+
+    if (!nome) {
+      erros.push(`Linha ${linha}: nome ausente`);
+      return;
+    }
+    if (!registroUnico) {
+      erros.push(`Linha ${linha}: RU ausente${nome ? ` (${nome})` : ''}`);
+      return;
+    }
+
+    servidores.push({
+      nome,
+      data_nascimento: parseDate(row['Data Nascimento'] || row['DATA_NASCIMENTO'] || row['data_nascimento']),
+      sexo: (row['Sexo'] || row['SEXO'] || row['sexo'] || '').substring(0, 1).toUpperCase() || null,
+      matricula,
+      registro_unico: registroUnico,
+      rg: row['RG'] || row['rg'] || null,
+      cpf: row['CPF'] || row['cpf'] || null,
+      data_admissao: parseDate(row['Data Admissão'] || row['DATA_ADMISSAO'] || row['data_admissao']) || new Date().toISOString().split('T')[0],
+      cargo: row['Cargo'] || row['CARGO'] || row['cargo'] || null,
+      lotacao: row['Lotação'] || row['LOTACAO'] || row['lotacao'] || null,
+      vinculo: row['Vínculo'] || row['VINCULO'] || row['vinculo'] || null,
+    });
+  });
+
+  return { servidores, erros };
+}
  
  export async function parseFaltasExcel(file: File): Promise<FaltaImport[]> {
    const data = await file.arrayBuffer();
