@@ -155,7 +155,8 @@ export function calcularQuinquenio(
     ocorrencias: noPeriodo.map(({ tipo, dias, inicio, fim }) => ({ tipo, dias, inicio, fim })),
     acrescimoPorTipo,
     status,
-    afetadoLc1732020: sobrepoe(dataInicio, dataFimAjustada, LC_173_INICIO, LC_173_FIM),
+    // Marcador manual: nunca é calculado automaticamente (LC 173/2020 revogada).
+    afetadoLc1732020: false,
     diasRestantes: Math.max(
       0,
       Math.ceil((dataFimAjustada.getTime() - hoje.getTime()) / 86400000)
