@@ -53,10 +53,6 @@ export function acrescimoDoTipo(tipo: string): number {
   return ACRESCIMO_POR_TIPO[tipo as TipoOcorrencia] ?? 1;
 }
 
-/** Vigência da LC 173/2020 (suspensão de contagem para fins remuneratórios). */
-const LC_173_INICIO = parseISO('2020-05-28');
-const LC_173_FIM = parseISO('2021-12-31');
-
 export interface OcorrenciaInput {
   id?: string;
   tipo: string;
@@ -155,7 +151,8 @@ export function calcularQuinquenio(
     ocorrencias: noPeriodo.map(({ tipo, dias, inicio, fim }) => ({ tipo, dias, inicio, fim })),
     acrescimoPorTipo,
     status,
-    afetadoLc1732020: sobrepoe(dataInicio, dataFimAjustada, LC_173_INICIO, LC_173_FIM),
+    // Marcador manual: nunca é calculado automaticamente (LC 173/2020 revogada).
+    afetadoLc1732020: false,
     diasRestantes: Math.max(
       0,
       Math.ceil((dataFimAjustada.getTime() - hoje.getTime()) / 86400000)
