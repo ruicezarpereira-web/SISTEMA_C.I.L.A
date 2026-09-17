@@ -8,7 +8,7 @@
    data_nascimento: string | null;
    sexo: string | null;
    matricula: string;
-   registro_unico: string | null;
+   registro_unico: string;
    rg: string | null;
    cpf: string | null;
    data_admissao: string;

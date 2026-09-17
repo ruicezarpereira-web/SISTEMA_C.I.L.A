@@ -4,9 +4,9 @@
    nome: string;
    data_nascimento: string | null;
    sexo: string | null;
-   matricula: string;
-   registro_unico: string | null;
-   rg: string | null;
+  matricula: string;
+  registro_unico: string;
+  rg: string | null;
    cpf: string | null;
    data_admissao: string;
    cargo: string | null;

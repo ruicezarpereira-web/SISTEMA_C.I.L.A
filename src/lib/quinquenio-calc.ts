@@ -104,17 +104,29 @@ export function calcularQuinquenio(
     ? parseISO(quinquenio.data_fim_base)
     : addDays(dataInicio, DIAS_QUINQUENIO_BASE);
 
-  const noPeriodo = ocorrencias
-    .map((o) => ({
-      tipo: o.tipo,
-      inicio: parseISO(o.data_inicio),
-      fim: parseISO(o.data_fim),
-      dias: o.dias_acrescimo ?? acrescimoDoTipo(o.tipo),
-    }))
-    .filter((o) => sobrepoe(o.inicio, o.fim, dataInicio, dataFimBase));
+  const todas = ocorrencias.map((o) => ({
+    tipo: o.tipo,
+    inicio: parseISO(o.data_inicio),
+    fim: parseISO(o.data_fim),
+    dias: o.dias_acrescimo ?? acrescimoDoTipo(o.tipo),
+  }));
 
-  const diasAcrescimo = noPeriodo.reduce((acc, o) => acc + o.dias, 0);
-  const dataFimAjustada = addDays(dataFimBase, diasAcrescimo);
+  // Cálculo convergente: uma ocorrência que cai dentro da janela já esticada
+  // também conta, podendo esticar a janela ainda mais.
+  let dataFimAjustada = dataFimBase;
+  let diasAcrescimo = 0;
+  let noPeriodo = todas.filter((o) => sobrepoe(o.inicio, o.fim, dataInicio, dataFimBase));
+
+  for (let i = 0; i < 50; i++) {
+    noPeriodo = todas.filter((o) => sobrepoe(o.inicio, o.fim, dataInicio, dataFimAjustada));
+    const novoTotal = noPeriodo.reduce((acc, o) => acc + o.dias, 0);
+    const novaData = addDays(dataFimBase, novoTotal);
+    if (novoTotal === diasAcrescimo && novaData.getTime() === dataFimAjustada.getTime()) {
+      break;
+    }
+    diasAcrescimo = novoTotal;
+    dataFimAjustada = novaData;
+  }
 
   const acrescimoPorTipo: QuinquenioResult['acrescimoPorTipo'] = {};
   noPeriodo.forEach((o) => {
