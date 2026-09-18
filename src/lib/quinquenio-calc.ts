@@ -59,6 +59,8 @@ export interface OcorrenciaInput {
   data_inicio: string;
   data_fim: string;
   dias_acrescimo?: number | null;
+  /** Quantidade de dias do evento (ex.: 3 dias de falta = +30). Default 1. */
+  quantidade_dias?: number | null;
 }
 
 export interface QuinquenioInput {
@@ -104,7 +106,7 @@ export function calcularQuinquenio(
     tipo: o.tipo,
     inicio: parseISO(o.data_inicio),
     fim: parseISO(o.data_fim),
-    dias: o.dias_acrescimo ?? acrescimoDoTipo(o.tipo),
+    dias: o.dias_acrescimo ?? acrescimoDoTipo(o.tipo) * (o.quantidade_dias ?? 1),
   }));
 
   // Cálculo convergente: uma ocorrência que cai dentro da janela já esticada
