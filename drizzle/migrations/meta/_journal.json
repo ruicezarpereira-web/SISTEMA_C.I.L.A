@@ -29,6 +29,13 @@
       "when": 1789619634618,
       "tag": "0003_lc173_manual_e_recalculo_proximo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789739913154,
+      "tag": "0004_ocorrencias_quantidade_dias",
+      "breakpoints": true
     }
   ]
 }
