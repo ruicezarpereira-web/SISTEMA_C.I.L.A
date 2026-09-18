@@ -285,6 +285,7 @@ export type Database = {
           documento_referencia: string | null
           id: string
           observacoes: string | null
+          quantidade_dias: number
           servidor_id: string
           tipo: string
         }
@@ -296,6 +297,7 @@ export type Database = {
           documento_referencia?: string | null
           id?: string
           observacoes?: string | null
+          quantidade_dias?: number
           servidor_id: string
           tipo: string
         }
@@ -307,6 +309,7 @@ export type Database = {
           documento_referencia?: string | null
           id?: string
           observacoes?: string | null
+          quantidade_dias?: number
           servidor_id?: string
           tipo?: string
         }

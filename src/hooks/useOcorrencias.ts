@@ -10,6 +10,7 @@ export interface Ocorrencia {
   data_inicio: string;
   data_fim: string;
   dias_acrescimo: number;
+  quantidade_dias: number;
   documento_referencia: string | null;
   observacoes: string | null;
   created_at: string;
