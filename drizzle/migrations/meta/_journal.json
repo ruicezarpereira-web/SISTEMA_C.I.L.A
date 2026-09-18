@@ -36,6 +36,13 @@
       "when": 1789739913154,
       "tag": "0004_ocorrencias_quantidade_dias",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789740088083,
+      "tag": "0005_importador_historico_chaves_naturais",
+      "breakpoints": true
     }
   ]
 }
