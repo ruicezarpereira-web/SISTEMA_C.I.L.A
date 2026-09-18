@@ -170,6 +170,53 @@ export type Database = {
         }
         Relationships: []
       }
+      faltas_historico_legado: {
+        Row: {
+          competencia: string | null
+          created_at: string
+          evento: string | null
+          id: string
+          precisa_revisao: boolean
+          referencia: string | null
+          servidor_id: string | null
+          situacao: string | null
+          tipo_evento: string | null
+          valor: number | null
+        }
+        Insert: {
+          competencia?: string | null
+          created_at?: string
+          evento?: string | null
+          id?: string
+          precisa_revisao?: boolean
+          referencia?: string | null
+          servidor_id?: string | null
+          situacao?: string | null
+          tipo_evento?: string | null
+          valor?: number | null
+        }
+        Update: {
+          competencia?: string | null
+          created_at?: string
+          evento?: string | null
+          id?: string
+          precisa_revisao?: boolean
+          referencia?: string | null
+          servidor_id?: string | null
+          situacao?: string | null
+          tipo_evento?: string | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faltas_historico_legado_servidor_id_fkey"
+            columns: ["servidor_id"]
+            isOneToOne: false
+            referencedRelation: "servidores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gozos: {
         Row: {
           created_at: string
@@ -327,6 +374,7 @@ export type Database = {
         Row: {
           created_at: string
           data_abertura: string
+          data_final: string | null
           data_publicacao: string | null
           id: string
           nivel: string | null
@@ -342,6 +390,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data_abertura: string
+          data_final?: string | null
           data_publicacao?: string | null
           id?: string
           nivel?: string | null
@@ -357,6 +406,7 @@ export type Database = {
         Update: {
           created_at?: string
           data_abertura?: string
+          data_final?: string | null
           data_publicacao?: string | null
           id?: string
           nivel?: string | null
