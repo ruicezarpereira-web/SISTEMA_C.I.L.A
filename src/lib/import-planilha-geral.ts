@@ -188,6 +188,7 @@ export interface ParsePlanilhaResult {
   faltasLegado: FaltaLegado[];
   erros: string[];
   motivosNaoMapeados: { motivo: string; ocorrencias: number }[];
+  motivosForaDeEscopo: { motivo: string; ocorrencias: number }[];
   abasEncontradas: Record<string, string | null>;
 }
 
@@ -219,12 +220,37 @@ const MAPA_MOTIVO: Record<string, TipoOcorrencia> = {
   'MANDATO ELETIVO SEM REMUNERACAO': 'MANDATO_ELETIVO_NAO_REMUNERADO',
   'AFASTAMENTO REMUNERADO': 'AFASTAMENTO_REMUNERADO',
   'CESSAO COM ONUS': 'AFASTAMENTO_REMUNERADO',
+  'ATESTADO/LICENCA MEDICA': 'ATESTADO',
+  // ATENÇÃO: nunca adicionar a chave 'FALTA' isolada — faltas só entram pela aba 3.
 };
+
+/**
+ * Motivos JÁ REVISADOS e confirmados como sem efeito na licença-prêmio.
+ * Aparecem no relatório como "fora do escopo", não como pendência.
+ */
+const MOTIVOS_FORA_DE_ESCOPO = new Set([
+  'FERIAS',
+  'FERIAS GOZO',
+  'RESTRICAO FUNCIONAL',
+  'LICENCA PREMIO OU ESPECIAL',
+  'FALTA',
+  'OUTROS',
+]);
+
+function ehForaDeEscopo(motivoNormalizado: string): boolean {
+  if (MOTIVOS_FORA_DE_ESCOPO.has(motivoNormalizado)) return true;
+  if (motivoNormalizado.startsWith('FALECIMENTO')) return true; // ex.: "FALECIMENTO(7)"
+  return false;
+}
+
+/** Normaliza o motivo: sem acento, maiúsculo, sem pontos, barra sem espaços ao redor. */
+function normalizarMotivo(motivo: string): string {
+  return normalizarChaveTexto(motivo).replace(/\./g, '').replace(/\s*\/\s*/g, '/').trim();
+}
 
 export function mapearMotivo(motivo: string | null): TipoOcorrencia | null {
   if (!motivo) return null;
-  const chave = normalizarChaveTexto(motivo).replace(/\./g, '');
-  return MAPA_MOTIVO[chave] ?? null;
+  return MAPA_MOTIVO[normalizarMotivo(motivo)] ?? null;
 }
 
 const MESES: Record<string, number> = {
@@ -264,6 +290,7 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
     faltasLegado: [],
     erros,
     motivosNaoMapeados: [],
+    motivosForaDeEscopo: [],
     abasEncontradas: {
       servidores: abaServidores,
       processos: abaProcessos,
@@ -424,6 +451,7 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
 
   // ---------------- Aba 7.Afastamentos (cabeçalho na linha 1)
   const motivosNaoMapeados = new Map<string, number>();
+  const motivosForaDeEscopo = new Map<string, number>();
   if (!abaAfastamentos) {
     erros.push('Aba "7.Afastamentos" não encontrada na planilha.');
   } else {
@@ -450,7 +478,11 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
       const tipo = mapearMotivo(motivoBruto);
       if (!tipo) {
         const chave = motivoBruto ?? '(vazio)';
-        motivosNaoMapeados.set(chave, (motivosNaoMapeados.get(chave) ?? 0) + 1);
+        if (motivoBruto && ehForaDeEscopo(normalizarMotivo(motivoBruto))) {
+          motivosForaDeEscopo.set(chave, (motivosForaDeEscopo.get(chave) ?? 0) + 1);
+        } else {
+          motivosNaoMapeados.set(chave, (motivosNaoMapeados.get(chave) ?? 0) + 1);
+        }
         return;
       }
 
@@ -582,6 +614,9 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
   }
 
   result.motivosNaoMapeados = [...motivosNaoMapeados.entries()]
+    .map(([motivo, ocorrencias]) => ({ motivo, ocorrencias }))
+    .sort((a, b) => b.ocorrencias - a.ocorrencias);
+  result.motivosForaDeEscopo = [...motivosForaDeEscopo.entries()]
     .map(([motivo, ocorrencias]) => ({ motivo, ocorrencias }))
     .sort((a, b) => b.ocorrencias - a.ocorrencias);
 
