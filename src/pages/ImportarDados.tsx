@@ -8,7 +8,7 @@
  import { useToast } from "@/hooks/use-toast";
  import { supabase } from "@/integrations/supabase/client";
 import { parseServidoresExcel, parseFaltasExcel, parseAfastamentosExcel } from "@/lib/excel-import";
-import { importarPlanilhaGeral, type ImportSummary } from "@/lib/import-runner";
+import PlanilhaGeralCard from "@/components/PlanilhaGeralCard";
  
  type ImportType = 'servidores' | 'faltas' | 'afastamentos';
  
