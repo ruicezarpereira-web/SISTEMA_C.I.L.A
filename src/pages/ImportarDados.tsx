@@ -135,7 +135,9 @@ import { importarPlanilhaGeral, type ImportSummary } from "@/lib/import-runner";
          </p>
        </div>
  
-       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ImportType)}>
+        <PlanilhaGeralCard />
+
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ImportType)}>
          <TabsList className="grid w-full grid-cols-3">
            <TabsTrigger value="servidores">
              <Users className="h-4 w-4 mr-2" />
