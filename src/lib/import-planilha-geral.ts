@@ -468,15 +468,22 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
         return;
       }
 
+      // DIAS PASSADOS (coluna 20) é a fonte de verdade da duração do evento.
+      const diasPassados = linha[20];
+      const qtdDias =
+        typeof diasPassados === 'number' && diasPassados > 0
+          ? Math.round(diasPassados)
+          : diffDiasISO(fim, inicio) + 1; // reserva: calcula pela data se a coluna vier vazia
+
       const docs = [
         texto(linha[4]) ? `DOC: ${texto(linha[4])}` : null,
         motivoBruto ? `MOTIVO PLANILHA: ${motivoBruto}` : null,
       ].filter(Boolean);
       const obs = [
-        texto(linha[7]) ? `DESCRIÇÃO: ${texto(linha[7])}` : null,
-        texto(linha[10]) ? `CID: ${texto(linha[10])}` : null,
-        texto(linha[11]) ? `PORTARIA: ${texto(linha[11])}` : null,
-        texto(linha[12]) ? `OBS: ${texto(linha[12])}` : null,
+        texto(linha[7]) ? `CADASTRO DO AFASTAMENTO: ${texto(linha[7])}` : null,
+        texto(linha[19]) ? `CID: ${texto(linha[19])}` : null,
+        texto(linha[21]) ? `PORTARIA: ${texto(linha[21])}` : null,
+        texto(linha[24]) ? `OBS: ${texto(linha[24])}` : null,
       ].filter(Boolean);
 
       result.afastamentos.push({
@@ -486,7 +493,7 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
         tipo,
         data_inicio: inicio,
         data_fim: fim,
-        quantidade_dias: 1,
+        quantidade_dias: qtdDias,
         documento_referencia: docs.length ? docs.join(' | ') : null,
         observacoes: obs.length ? obs.join(' | ') : null,
       });
