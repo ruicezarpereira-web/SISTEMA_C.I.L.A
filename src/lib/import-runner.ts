@@ -33,6 +33,10 @@ export interface ImportSummary {
   estornos: number;
   motivosNaoMapeados: { motivo: string; ocorrencias: number }[];
   motivosForaDeEscopo: { motivo: string; ocorrencias: number }[];
+  situacoesProcessoNaoMapeadas: { motivo: string; ocorrencias: number }[];
+  afastamentosRuSemServidor: string[];
+  /** só na gravação real: registros efetivamente gravados (lotes sem erro) */
+  gravados: Record<string, number> | null;
   erros: string[];
   revisaoEstornos: string[];
   revisaoFaltasSemDias: string[];
@@ -84,7 +88,7 @@ export async function importarPlanilhaGeral(
     quinquenios: totalQuinquenios,
     quinqueniosDeferidos: totalDeferidos,
     gozos: totalGozos,
-    processos: parsed.processos.length,
+    processos: parsed.processosLidos,
     processosVinculados: 0,
     afastamentos: parsed.afastamentos.length,
     faltas: parsed.faltas.length,
@@ -92,6 +96,9 @@ export async function importarPlanilhaGeral(
     estornos: parsed.faltasLegado.filter((f) => f.motivo_legado === 'ESTORNO').length,
     motivosNaoMapeados: parsed.motivosNaoMapeados,
     motivosForaDeEscopo: parsed.motivosForaDeEscopo,
+    situacoesProcessoNaoMapeadas: parsed.situacoesProcessoNaoMapeadas,
+    afastamentosRuSemServidor: [],
+    gravados: null,
     erros,
     revisaoEstornos: [],
     revisaoFaltasSemDias: [],
@@ -134,10 +141,32 @@ export async function importarPlanilhaGeral(
       );
     });
 
+  // ---- afastamentos cujo RU não existe na aba de Servidores nem no banco
+  const rusPlanilha = new Set(parsed.servidores.map((s) => s.registro_unico));
+  const ausentes = contarPorChave(
+    parsed.afastamentos.map((a) => a.registro_unico).filter((ru) => ru && !rusPlanilha.has(ru))
+  );
+  if (ausentes.size) {
+    const noBanco = new Set<string>();
+    await emLotes([...ausentes.keys()], async (lote) => {
+      const { data } = await supabase.from('servidores').select('registro_unico').in('registro_unico', lote);
+      data?.forEach((s) => noBanco.add(s.registro_unico));
+    });
+    resumo.afastamentosRuSemServidor = [...ausentes.entries()]
+      .filter(([ru]) => !noBanco.has(ru))
+      .map(([ru, n]) => `RU ${ru}: ${n} afastamento(s) — servidor não está na planilha nem no sistema`);
+  }
+
   if (dryRun) {
     progresso(100, 'Simulação concluída');
     return resumo;
   }
+
+  const gravados: Record<string, number> = {
+    servidores: 0, matriculas: 0, quinquenios: 0, gozos: 0, processos: 0,
+    afastamentos: 0, faltas: 0, legado: 0,
+  };
+  resumo.gravados = gravados;
 
   // ---- 1. servidores + matrículas + quinquênios + gozos
   progresso(20, 'Gravando servidores');
@@ -175,6 +204,7 @@ export async function importarPlanilhaGeral(
         .from('servidores')
         .upsert(lote as never, { onConflict: 'registro_unico' });
       if (error) erros.push(`Servidores: ${error.message}`);
+    else gravados.servidores += lote.length;
     }
   );
 
@@ -199,6 +229,7 @@ export async function importarPlanilhaGeral(
       .from('matriculas_historico')
       .upsert(lote as never, { onConflict: 'servidor_id,matricula' });
     if (error) erros.push(`Matrículas: ${error.message}`);
+    else gravados.matriculas += lote.length;
   });
 
   progresso(45, 'Gravando quinquênios históricos');
@@ -220,6 +251,7 @@ export async function importarPlanilhaGeral(
       .from('quinquenios')
       .upsert(lote as never, { onConflict: 'servidor_id,numero' });
     if (error) erros.push(`Quinquênios: ${error.message}`);
+    else gravados.quinquenios += lote.length;
   });
 
   // mapa (servidor_id|numero) -> quinquenio_id
@@ -257,6 +289,7 @@ export async function importarPlanilhaGeral(
       .from('gozos')
       .upsert(lote as never, { onConflict: 'quinquenio_id,numero_periodo' });
     if (error) erros.push(`Gozos: ${error.message}`);
+    else gravados.gozos += lote.length;
   });
 
   // ---- 2. processos
@@ -294,7 +327,10 @@ export async function importarPlanilhaGeral(
         data_final: p.data_final,
         quinquenio: p.quinquenio ?? 0,
         responsavel: p.responsavel,
-        situacao: p.situacao ?? 'IMPORTADO',
+        status: p.status,
+        situacao: p.situacao,
+        situacao_planilha: p.situacao_planilha,
+        data_publicacao: p.data_publicacao,
         nivel: p.nivel,
       };
     })
@@ -305,6 +341,7 @@ export async function importarPlanilhaGeral(
       .from('processos')
       .upsert(lote as never, { onConflict: 'numero_processo' });
     if (error) erros.push(`Processos: ${error.message}`);
+    else gravados.processos += lote.length;
   });
 
   // vincula quinquenios.processo_id
@@ -359,6 +396,7 @@ export async function importarPlanilhaGeral(
         ignoreDuplicates: true,
       });
     if (error) erros.push(`Afastamentos: ${error.message}`);
+    else gravados.afastamentos += lote.length;
   });
 
   // ---- 4. faltas (pós 06/2019 com dias) -> ocorrencias; resto -> legado
@@ -382,6 +420,7 @@ export async function importarPlanilhaGeral(
         ignoreDuplicates: true,
       });
     if (error) erros.push(`Faltas: ${error.message}`);
+    else gravados.faltas += lote.length;
   });
 
   const legado = parsed.faltasLegado.map((f) => ({
@@ -399,6 +438,7 @@ export async function importarPlanilhaGeral(
       .from('faltas_historico_legado')
       .upsert(lote as never, { onConflict: 'servidor_id,evento,competencia,valor', ignoreDuplicates: true });
     if (error) erros.push(`Faltas (legado): ${error.message}`);
+    else gravados.legado += lote.length;
   });
 
   await supabase.from('logs_atividade').insert({

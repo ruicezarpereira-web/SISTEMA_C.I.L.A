@@ -44,17 +44,21 @@ export default function PlanilhaGeralCard() {
     }
   };
 
-  const linhas: [string, number][] = resumo ? [
-    ["Servidores", resumo.servidores],
-    ["Quinquênios", resumo.quinquenios],
-    ["  dos quais deferidos", resumo.quinqueniosDeferidos],
-    ["Períodos de gozo", resumo.gozos],
-    ["Processos", resumo.processos],
-    ["Afastamentos (ocorrências)", resumo.afastamentos],
-    ["Faltas com dias (ocorrências)", resumo.faltas],
-    ["Faltas sem dias (revisão)", resumo.faltasLegadoSemDias],
-    ["Estornos (revisão)", resumo.estornos],
-    ["Erros", resumo.erros.length],
+  const g = resumo?.gravados;
+  const fmt = (lidos: number, chave?: string) =>
+    g && chave ? `${lidos} lidos, ${g[chave] ?? 0} gravados` : String(lidos);
+  const linhas: [string, string][] = resumo ? [
+    ["Servidores", fmt(resumo.servidores, "servidores")],
+    ["Quinquênios", fmt(resumo.quinquenios, "quinquenios")],
+    ["  dos quais deferidos", String(resumo.quinqueniosDeferidos)],
+    ["Períodos de gozo", fmt(resumo.gozos, "gozos")],
+    ["Processos", fmt(resumo.processos, "processos")],
+    ...(g ? [["Quinquênios vinculados a processo", String(resumo.processosVinculados)] as [string, string]] : []),
+    ["Afastamentos (ocorrências)", fmt(resumo.afastamentos, "afastamentos")],
+    ["Faltas com dias (ocorrências)", fmt(resumo.faltas, "faltas")],
+    ["Faltas sem dias (revisão)", String(resumo.faltasLegadoSemDias)],
+    ["Estornos (revisão)", String(resumo.estornos)],
+    ["Erros", String(resumo.erros.length)],
   ] : [];
 
   return (
@@ -82,6 +86,8 @@ export default function PlanilhaGeralCard() {
             </table>
             <Lista titulo="Não mapeados (decisão pendente)" itens={resumo.motivosNaoMapeados.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
             <Lista titulo="Fora do escopo (sem ação necessária)" itens={resumo.motivosForaDeEscopo.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
+            <Lista titulo="Situações/status de processo não mapeados" itens={resumo.situacoesProcessoNaoMapeadas.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
+            <Lista titulo="Afastamentos de RU sem servidor" itens={resumo.afastamentosRuSemServidor} />
             <Lista titulo="Erros e inconsistências" itens={resumo.erros} />
             <Lista titulo="Faltas sem quantidade de dias" itens={resumo.revisaoFaltasSemDias} />
             <Lista titulo="Estornos para revisar" itens={resumo.revisaoEstornos} />
