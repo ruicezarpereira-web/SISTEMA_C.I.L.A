@@ -32,6 +32,7 @@ export interface ImportSummary {
   faltasLegadoSemDias: number;
   estornos: number;
   motivosNaoMapeados: { motivo: string; ocorrencias: number }[];
+  motivosForaDeEscopo: { motivo: string; ocorrencias: number }[];
   erros: string[];
   revisaoEstornos: string[];
   revisaoFaltasSemDias: string[];
@@ -90,6 +91,7 @@ export async function importarPlanilhaGeral(
     faltasLegadoSemDias: parsed.faltasLegado.filter((f) => f.motivo_legado === 'SEM_QUANTIDADE_DIAS').length,
     estornos: parsed.faltasLegado.filter((f) => f.motivo_legado === 'ESTORNO').length,
     motivosNaoMapeados: parsed.motivosNaoMapeados,
+    motivosForaDeEscopo: parsed.motivosForaDeEscopo,
     erros,
     revisaoEstornos: [],
     revisaoFaltasSemDias: [],
