@@ -384,6 +384,7 @@ export type Database = {
           responsavel: string | null
           servidor_id: string
           situacao: string
+          situacao_planilha: string | null
           status: string
           updated_at: string
         }
@@ -400,6 +401,7 @@ export type Database = {
           responsavel?: string | null
           servidor_id: string
           situacao?: string
+          situacao_planilha?: string | null
           status?: string
           updated_at?: string
         }
@@ -416,6 +418,7 @@ export type Database = {
           responsavel?: string | null
           servidor_id?: string
           situacao?: string
+          situacao_planilha?: string | null
           status?: string
           updated_at?: string
         }
