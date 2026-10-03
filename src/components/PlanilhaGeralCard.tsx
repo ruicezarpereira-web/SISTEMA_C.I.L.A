@@ -80,7 +80,8 @@ export default function PlanilhaGeralCard() {
             <table className="text-sm">
               <tbody>{linhas.map(([k, v]) => (<tr key={k}><td className="pr-6 whitespace-pre">{k}</td><td className="font-medium">{v}</td></tr>))}</tbody>
             </table>
-            <Lista titulo="Motivos de afastamento não mapeados" itens={resumo.motivosNaoMapeados.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
+            <Lista titulo="Não mapeados (decisão pendente)" itens={resumo.motivosNaoMapeados.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
+            <Lista titulo="Fora do escopo (sem ação necessária)" itens={resumo.motivosForaDeEscopo.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
             <Lista titulo="Erros e inconsistências" itens={resumo.erros} />
             <Lista titulo="Faltas sem quantidade de dias" itens={resumo.revisaoFaltasSemDias} />
             <Lista titulo="Estornos para revisar" itens={resumo.revisaoEstornos} />
