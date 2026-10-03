@@ -153,7 +153,10 @@ export interface ProcessoPlanilha {
   data_abertura: string | null;
   data_final: string | null;
   responsavel: string | null;
-  situacao: string | null;
+  status: string;
+  situacao: string;
+  situacao_planilha: string | null;
+  data_publicacao: string | null;
   nivel: string | null;
 }
 
@@ -189,7 +192,29 @@ export interface ParsePlanilhaResult {
   erros: string[];
   motivosNaoMapeados: { motivo: string; ocorrencias: number }[];
   motivosForaDeEscopo: { motivo: string; ocorrencias: number }[];
+  /** linhas de processo lidas (inclui as rejeitadas por status/situação não mapeados) */
+  processosLidos: number;
+  situacoesProcessoNaoMapeadas: { motivo: string; ocorrencias: number }[];
   abasEncontradas: Record<string, string | null>;
+}
+
+// ------------------------------------------- processos: dicionários explícitos
+
+const STATUS_PROCESSO_VALIDOS = new Set(['ATIVO', 'PENDENTE', 'FINALIZADO']);
+
+/** Comparação pela chave normalizada INTEIRA (nunca substring). */
+const MAPA_SITUACAO_PROCESSO: Record<string, string> = {
+  'DEFERIDO PUBLICADO': 'DEFERIDO_PUBLICADO',
+  'INDEF. PUBLICADO': 'INDEFERIDO',
+  'ENC. P/ PUBL. (INDEFERIDO)': 'INDEFERIDO',
+};
+
+/** Data de célula em dd/mm/aaaa; se não for data, devolve o texto original. */
+function formatarDataBR(value: unknown): string | null {
+  const iso = parseDataCelula(value);
+  if (!iso) return texto(value);
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
 }
 
 // ------------------------------------------- dicionário explícito de motivos
@@ -291,6 +316,8 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
     erros,
     motivosNaoMapeados: [],
     motivosForaDeEscopo: [],
+    processosLidos: 0,
+    situacoesProcessoNaoMapeadas: [],
     abasEncontradas: {
       servidores: abaServidores,
       processos: abaProcessos,
@@ -408,6 +435,7 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
   }
 
   // ---------------- Aba 2. Controle de Processos (CABEÇALHO NA LINHA 2)
+  const situacoesNaoMapeadas = new Map<string, number>();
   if (!abaProcessos) {
     erros.push('Aba "2. Controle de Processos" não encontrada na planilha.');
   } else {
@@ -426,27 +454,68 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
         return;
       }
 
-      const situacao = [
-        texto(col(row, 'SITUAÇÃO', 'SITUACAO')),
-        texto(col(row, 'STATUS')),
-        texto(col(row, 'STATUS DO PROCESSO')),
-      ]
-        .filter(Boolean)
-        .join(' | ') || null;
+      result.processosLidos += 1;
+
+      const situacaoBruta = texto(col(row, 'SITUAÇÃO', 'SITUACAO'));
+      const statusBruto = texto(col(row, 'STATUS'));
+      const statusProcessoBruto = texto(col(row, 'STATUS DO PROCESSO'));
+      const situacaoPlanilha =
+        [situacaoBruta, statusBruto, statusProcessoBruto].filter(Boolean).join(' | ') || null;
+
+      const statusNorm = statusBruto ? normalizarChaveTexto(statusBruto) : null;
+      const status = statusNorm && STATUS_PROCESSO_VALIDOS.has(statusNorm) ? statusNorm : null;
+      const situacao = situacaoBruta
+        ? MAPA_SITUACAO_PROCESSO[normalizarChaveTexto(situacaoBruta)] ?? null
+        : null;
+
+      if (!status || !situacao) {
+        if (!status) {
+          const k = `STATUS: ${statusBruto ?? '(vazio)'}`;
+          situacoesNaoMapeadas.set(k, (situacoesNaoMapeadas.get(k) ?? 0) + 1);
+        }
+        if (!situacao) {
+          const k = `SITUAÇÃO: ${situacaoBruta ?? '(vazio)'}`;
+          situacoesNaoMapeadas.set(k, (situacoesNaoMapeadas.get(k) ?? 0) + 1);
+        }
+        erros.push(
+          `Processos, linha ${numeroLinha} (processo ${numeroProcesso ?? '—'}): status/situação não mapeados — não importado`
+        );
+        return;
+      }
+
+      // data de publicação só quando "PUBLICADO NO D.O.M ... DE dd.mm.aaaa"
+      let dataPublicacao: string | null = null;
+      if (statusProcessoBruto) {
+        const n = normalizarChaveTexto(statusProcessoBruto);
+        const m = n.match(/PUBLICADO NO D\.?O\.?M.*?\bDE\s+(\d{1,2})[./](\d{1,2})[./](\d{4})/);
+        if (m && !n.includes('ENCAMINHADO')) {
+          dataPublicacao = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+        }
+      }
+
+      // PROCESSO ANTERIOR é mensagem de fórmula: extrair só o número
+      const anteriorTexto = texto(col(row, 'PROCESSO ANTERIOR'));
+      const anteriorNum = anteriorTexto?.match(/\d+\/\d{4}/)?.[0] ?? null;
 
       result.processos.push({
         matricula,
         requerente: texto(col(row, 'REQUERENTE')),
         numero_processo: numeroProcesso,
-        processo_anterior: texto(col(row, 'PROCESSO ANTERIOR')),
+        processo_anterior: anteriorNum,
         quinquenio,
         data_abertura: parseDataCelula(col(row, 'ABERTURA DO PROC/', 'ABERTURA DO PROC', 'ABERTURA')),
         data_final: parseDataCelula(col(row, 'DATA FINAL')),
         responsavel: texto(col(row, 'RESPONSÁVEL', 'RESPONSAVEL')),
+        status,
         situacao,
+        situacao_planilha: situacaoPlanilha,
+        data_publicacao: dataPublicacao,
         nivel: texto(col(row, 'FINALIZADO EM:', 'FINALIZADO EM')),
       });
     });
+    result.situacoesProcessoNaoMapeadas = [...situacoesNaoMapeadas.entries()]
+      .map(([motivo, ocorrencias]) => ({ motivo, ocorrencias }))
+      .sort((a, b) => b.ocorrencias - a.ocorrencias);
   }
 
   // ---------------- Aba 7.Afastamentos (cabeçalho na linha 1)
@@ -512,7 +581,7 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
         motivoBruto ? `MOTIVO PLANILHA: ${motivoBruto}` : null,
       ].filter(Boolean);
       const obs = [
-        texto(linha[7]) ? `CADASTRO DO AFASTAMENTO: ${texto(linha[7])}` : null,
+        texto(linha[7]) ? `CADASTRO DO AFASTAMENTO: ${formatarDataBR(linha[7])}` : null,
         texto(linha[19]) ? `CID: ${texto(linha[19])}` : null,
         texto(linha[21]) ? `PORTARIA: ${texto(linha[21])}` : null,
         texto(linha[24]) ? `OBS: ${texto(linha[24])}` : null,
