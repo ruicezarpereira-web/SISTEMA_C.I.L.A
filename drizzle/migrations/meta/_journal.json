@@ -57,6 +57,13 @@
       "when": 1791089406662,
       "tag": "0007_0007_contagem_inclusiva_e_quinquenio_em_aberto",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791092243044,
+      "tag": "0008_seed_vinculos_com_direito",
+      "breakpoints": true
     }
   ]
 }
