@@ -1,6 +1,6 @@
 import { addDays, parseISO, startOfDay } from 'date-fns';
 
-/** Dias-base de um quinquênio (data_inicio + 1825 dias). */
+/** Duração do quinquênio em dias, contando o dia inicial (fim = início + 1824). */
 export const DIAS_QUINQUENIO_BASE = 1825;
 
 /** Total de dias de licença-prêmio por quinquênio deferido. */
@@ -100,7 +100,7 @@ export function calcularQuinquenio(
   const dataInicio = parseISO(quinquenio.data_inicio);
   const dataFimBase = quinquenio.data_fim_base
     ? parseISO(quinquenio.data_fim_base)
-    : addDays(dataInicio, DIAS_QUINQUENIO_BASE);
+    : addDays(dataInicio, DIAS_QUINQUENIO_BASE - 1); // contagem inclusiva
 
   const todas = ocorrencias.map((o) => ({
     tipo: o.tipo,

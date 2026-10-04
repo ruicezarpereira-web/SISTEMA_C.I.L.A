@@ -372,7 +372,7 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
           continue;
         }
 
-        const fimBase = addDiasISO(inicio, DIAS_QUINQUENIO);
+        const fimBase = addDiasISO(inicio, DIAS_QUINQUENIO - 1); // contagem inclusiva
         let fimAjustada = fimPlanilha ?? fimBase;
         let acrescimo = diffDiasISO(fimAjustada, fimBase);
         if (acrescimo < 0) {
