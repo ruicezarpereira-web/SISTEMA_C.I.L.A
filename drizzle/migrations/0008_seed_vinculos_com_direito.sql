@@ -1,0 +1,1 @@
+INSERT INTO public.vinculos_com_direito (vinculo) VALUES ('ESTATUTARIO'), ('ESTATUTÁRIO') ON CONFLICT DO NOTHING;
