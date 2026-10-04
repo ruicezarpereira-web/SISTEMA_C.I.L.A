@@ -12,6 +12,17 @@ import type { TipoOcorrencia } from './quinquenio-calc';
 
 export const DIAS_QUINQUENIO = 1825;
 
+/** Número de processo só com contexto ("Proc. Nº ...") ou célula só com o número. */
+const RX_SOLO = /^\s*(\d+\/\d{4})\s*$/;
+const RX_CONTEXTO =
+  /(?:proc(?:esso)?\.?\s*(?:n[ºo°]\.?)?\s*|n[ºo°]\.?\s*)(\d+\/\d{4})(?![\d/])/i;
+
+export function extrairProcessoAnterior(texto: string | null): string | null {
+  if (!texto) return null;
+  const m = texto.match(RX_SOLO) ?? texto.match(RX_CONTEXTO);
+  return m ? m[1] : null;
+}
+
 // ---------------------------------------------------------------- utilidades
 
 function excelDateToISO(serial: number): string | null {
@@ -495,7 +506,7 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
 
       // PROCESSO ANTERIOR é mensagem de fórmula: extrair só o número
       const anteriorTexto = texto(col(row, 'PROCESSO ANTERIOR'));
-      const anteriorNum = anteriorTexto?.match(/\d+\/\d{4}/)?.[0] ?? null;
+      const anteriorNum = extrairProcessoAnterior(anteriorTexto);
 
       result.processos.push({
         matricula,
