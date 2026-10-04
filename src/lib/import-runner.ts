@@ -102,6 +102,8 @@ export async function importarPlanilhaGeral(
     situacoesProcessoNaoMapeadas: parsed.situacoesProcessoNaoMapeadas,
     afastamentosRuSemServidor: [],
     gravados: null,
+    quinqueniosEmAbertoCriados: 0,
+    servidoresSemDireito: [],
     erros,
     revisaoEstornos: [],
     revisaoFaltasSemDias: [],
@@ -158,6 +160,21 @@ export async function importarPlanilhaGeral(
     resumo.afastamentosRuSemServidor = [...ausentes.entries()]
       .filter(([ru]) => !noBanco.has(ru))
       .map(([ru, n]) => `RU ${ru}: ${n} afastamento(s) — servidor não está na planilha nem no sistema`);
+  }
+
+  // ---- servidores cujo vínculo não dá direito automático (informativo)
+  {
+    const { data: vinc } = await supabase.from('vinculos_com_direito').select('vinculo');
+    const comDireito = new Set((vinc ?? []).map((v) => v.vinculo));
+    const semDireito = contarPorChave(
+      parsed.servidores
+        .map((s) => (s.vinculo ?? '').trim().toUpperCase())
+        .filter((v) => !comDireito.has(v))
+        .map((v) => v || '(vínculo vazio)')
+    );
+    resumo.servidoresSemDireito = [...semDireito.entries()]
+      .sort((x, y) => y[1] - x[1])
+      .map(([v, n]) => `${v}: ${n}`);
   }
 
   if (dryRun) {
