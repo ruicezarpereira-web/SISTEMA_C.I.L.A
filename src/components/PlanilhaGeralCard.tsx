@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { importarPlanilhaGeral, type ImportSummary } from "@/lib/import-runner";
 
 function Lista({ titulo, itens }: { titulo: string; itens: string[] }) {
@@ -25,6 +26,14 @@ export default function PlanilhaGeralCard() {
   const [pct, setPct] = useState(0);
   const [etapa, setEtapa] = useState("");
   const [resumo, setResumo] = useState<ImportSummary | null>(null);
+
+  const atualizarSituacao = async () => {
+    setRodando(true);
+    const { error } = await supabase.rpc("atualizar_situacao_quinquenios");
+    setRodando(false);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else toast({ title: "Situação dos quinquênios atualizada — concluído" });
+  };
 
   const executar = async (dryRun: boolean) => {
     if (!arquivo) return;
@@ -77,6 +86,7 @@ export default function PlanilhaGeralCard() {
         <div className="flex gap-2">
           <Button variant="outline" disabled={!arquivo || rodando} onClick={() => executar(true)}>Simular (sem gravar)</Button>
           <Button disabled={!arquivo || rodando || !resumo?.dryRun} onClick={() => executar(false)}>Confirmar importação</Button>
+          <Button variant="secondary" disabled={rodando} onClick={atualizarSituacao}>Atualizar situação dos quinquênios</Button>
         </div>
         {rodando && (<div className="space-y-1"><p className="text-sm">{etapa}</p><Progress value={pct} /></div>)}
         {resumo && (
