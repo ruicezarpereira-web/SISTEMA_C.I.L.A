@@ -54,6 +54,7 @@ export default function PlanilhaGeralCard() {
     ["Períodos de gozo", fmt(resumo.gozos, "gozos")],
     ["Processos", fmt(resumo.processos, "processos")],
     ...(g ? [["Quinquênios vinculados a processo", String(resumo.processosVinculados)] as [string, string]] : []),
+    ...(g ? [["Quinquênios em aberto criados", String(resumo.quinqueniosEmAbertoCriados)] as [string, string]] : []),
     ["Afastamentos (ocorrências)", fmt(resumo.afastamentos, "afastamentos")],
     ["Faltas com dias (ocorrências)", fmt(resumo.faltas, "faltas")],
     ["Faltas sem dias (revisão)", String(resumo.faltasLegadoSemDias)],
@@ -87,6 +88,7 @@ export default function PlanilhaGeralCard() {
             <Lista titulo="Não mapeados (decisão pendente)" itens={resumo.motivosNaoMapeados.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
             <Lista titulo="Fora do escopo (sem ação necessária)" itens={resumo.motivosForaDeEscopo.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
             <Lista titulo="Situações/status de processo não mapeados" itens={resumo.situacoesProcessoNaoMapeadas.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
+            <Lista titulo="Servidores sem direito automático (vínculo não elegível)" itens={resumo.servidoresSemDireito} />
             <Lista titulo="Afastamentos de RU sem servidor" itens={resumo.afastamentosRuSemServidor} />
             <Lista titulo="Erros e inconsistências" itens={resumo.erros} />
             <Lista titulo="Faltas sem quantidade de dias" itens={resumo.revisaoFaltasSemDias} />
