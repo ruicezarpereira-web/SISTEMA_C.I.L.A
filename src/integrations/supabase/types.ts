@@ -616,11 +616,28 @@ export type Database = {
         }
         Relationships: []
       }
+      vinculos_com_direito: {
+        Row: {
+          vinculo: string
+        }
+        Insert: {
+          vinculo: string
+        }
+        Update: {
+          vinculo?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      atualizar_situacao_quinquenios: { Args: never; Returns: undefined }
+      garantir_quinquenios_em_aberto: {
+        Args: { _servidor_id: string }
+        Returns: undefined
+      }
       has_any_role: { Args: never; Returns: boolean }
       has_role: {
         Args: {
