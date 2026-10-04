@@ -47,7 +47,7 @@ export function useCriarPrimeiroQuinquenio() {
   return useMutation({
     mutationFn: async ({ servidorId, dataAdmissao }: { servidorId: string; dataAdmissao: string }) => {
       const inicio = parseISO(dataAdmissao);
-      const fimBase = addDays(inicio, DIAS_QUINQUENIO_BASE);
+      const fimBase = addDays(inicio, DIAS_QUINQUENIO_BASE - 1);
       const { data, error } = await supabase
         .from('quinquenios')
         .insert({
@@ -129,7 +129,7 @@ export function useRetificarQuinquenio() {
       diasAcrescimo = 0,
     }: { original: Quinquenio; dataInicio?: string; diasAcrescimo?: number }) => {
       const inicio = parseISO(dataInicio ?? original.data_inicio);
-      const fimBase = addDays(inicio, DIAS_QUINQUENIO_BASE);
+      const fimBase = addDays(inicio, DIAS_QUINQUENIO_BASE - 1);
       const fimAjustada = addDays(fimBase, diasAcrescimo);
 
       const { error: errOriginal } = await supabase

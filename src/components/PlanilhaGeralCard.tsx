@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { importarPlanilhaGeral, type ImportSummary } from "@/lib/import-runner";
 
 function Lista({ titulo, itens }: { titulo: string; itens: string[] }) {
@@ -25,6 +26,14 @@ export default function PlanilhaGeralCard() {
   const [pct, setPct] = useState(0);
   const [etapa, setEtapa] = useState("");
   const [resumo, setResumo] = useState<ImportSummary | null>(null);
+
+  const atualizarSituacao = async () => {
+    setRodando(true);
+    const { error } = await supabase.rpc("atualizar_situacao_quinquenios");
+    setRodando(false);
+    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
+    else toast({ title: "Situação dos quinquênios atualizada — concluído" });
+  };
 
   const executar = async (dryRun: boolean) => {
     if (!arquivo) return;
@@ -54,6 +63,7 @@ export default function PlanilhaGeralCard() {
     ["Períodos de gozo", fmt(resumo.gozos, "gozos")],
     ["Processos", fmt(resumo.processos, "processos")],
     ...(g ? [["Quinquênios vinculados a processo", String(resumo.processosVinculados)] as [string, string]] : []),
+    ...(g ? [["Quinquênios em aberto criados", String(resumo.quinqueniosEmAbertoCriados)] as [string, string]] : []),
     ["Afastamentos (ocorrências)", fmt(resumo.afastamentos, "afastamentos")],
     ["Faltas com dias (ocorrências)", fmt(resumo.faltas, "faltas")],
     ["Faltas sem dias (revisão)", String(resumo.faltasLegadoSemDias)],
@@ -76,6 +86,7 @@ export default function PlanilhaGeralCard() {
         <div className="flex gap-2">
           <Button variant="outline" disabled={!arquivo || rodando} onClick={() => executar(true)}>Simular (sem gravar)</Button>
           <Button disabled={!arquivo || rodando || !resumo?.dryRun} onClick={() => executar(false)}>Confirmar importação</Button>
+          <Button variant="secondary" disabled={rodando} onClick={atualizarSituacao}>Atualizar situação dos quinquênios</Button>
         </div>
         {rodando && (<div className="space-y-1"><p className="text-sm">{etapa}</p><Progress value={pct} /></div>)}
         {resumo && (
@@ -87,6 +98,7 @@ export default function PlanilhaGeralCard() {
             <Lista titulo="Não mapeados (decisão pendente)" itens={resumo.motivosNaoMapeados.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
             <Lista titulo="Fora do escopo (sem ação necessária)" itens={resumo.motivosForaDeEscopo.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
             <Lista titulo="Situações/status de processo não mapeados" itens={resumo.situacoesProcessoNaoMapeadas.map((m) => `${m.motivo}: ${m.ocorrencias}`)} />
+            <Lista titulo="Servidores sem direito automático (vínculo não elegível)" itens={resumo.servidoresSemDireito} />
             <Lista titulo="Afastamentos de RU sem servidor" itens={resumo.afastamentosRuSemServidor} />
             <Lista titulo="Erros e inconsistências" itens={resumo.erros} />
             <Lista titulo="Faltas sem quantidade de dias" itens={resumo.revisaoFaltasSemDias} />

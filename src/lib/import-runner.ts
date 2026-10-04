@@ -37,6 +37,9 @@ export interface ImportSummary {
   afastamentosRuSemServidor: string[];
   /** só na gravação real: registros efetivamente gravados (lotes sem erro) */
   gravados: Record<string, number> | null;
+  quinqueniosEmAbertoCriados: number;
+  /** "VÍNCULO: n" para servidores cujo vínculo não dá direito automático */
+  servidoresSemDireito: string[];
   erros: string[];
   revisaoEstornos: string[];
   revisaoFaltasSemDias: string[];
@@ -99,6 +102,8 @@ export async function importarPlanilhaGeral(
     situacoesProcessoNaoMapeadas: parsed.situacoesProcessoNaoMapeadas,
     afastamentosRuSemServidor: [],
     gravados: null,
+    quinqueniosEmAbertoCriados: 0,
+    servidoresSemDireito: [],
     erros,
     revisaoEstornos: [],
     revisaoFaltasSemDias: [],
@@ -155,6 +160,21 @@ export async function importarPlanilhaGeral(
     resumo.afastamentosRuSemServidor = [...ausentes.entries()]
       .filter(([ru]) => !noBanco.has(ru))
       .map(([ru, n]) => `RU ${ru}: ${n} afastamento(s) — servidor não está na planilha nem no sistema`);
+  }
+
+  // ---- servidores cujo vínculo não dá direito automático (informativo)
+  {
+    const { data: vinc } = await supabase.from('vinculos_com_direito').select('vinculo');
+    const comDireito = new Set((vinc ?? []).map((v) => v.vinculo));
+    const semDireito = contarPorChave(
+      parsed.servidores
+        .map((s) => (s.vinculo ?? '').trim().toUpperCase())
+        .filter((v) => !comDireito.has(v))
+        .map((v) => v || '(vínculo vazio)')
+    );
+    resumo.servidoresSemDireito = [...semDireito.entries()]
+      .sort((x, y) => y[1] - x[1])
+      .map(([v, n]) => `${v}: ${n}`);
   }
 
   if (dryRun) {
@@ -440,6 +460,33 @@ export async function importarPlanilhaGeral(
     if (error) erros.push(`Faltas (legado): ${error.message}`);
     else gravados.legado += lote.length;
   });
+
+  // ---- 5. quinquênios em aberto + atualização da situação pela data
+  progresso(95, 'Criando quinquênios em aberto');
+  const contarQuinq = async () => {
+    let total = 0;
+    await emLotes(servidorIds, async (lote) => {
+      const { count } = await supabase
+        .from('quinquenios')
+        .select('id', { count: 'exact', head: true })
+        .in('servidor_id', lote);
+      total += count ?? 0;
+    });
+    return total;
+  };
+  const antes = await contarQuinq();
+  for (let i = 0; i < servidorIds.length; i += 20) {
+    await Promise.all(
+      servidorIds.slice(i, i + 20).map(async (id) => {
+        const { error } = await supabase.rpc('garantir_quinquenios_em_aberto', { _servidor_id: id });
+        if (error) erros.push(`Quinquênio em aberto: ${error.message}`);
+      })
+    );
+  }
+  const { error: errAtualizar } = await supabase.rpc('atualizar_situacao_quinquenios');
+  if (errAtualizar) erros.push(`Atualização da situação dos quinquênios: ${errAtualizar.message}`);
+  resumo.quinqueniosEmAbertoCriados = Math.max(0, (await contarQuinq()) - antes);
+
 
   await supabase.from('logs_atividade').insert({
     tipo_acao: 'UPLOAD',
