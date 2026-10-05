@@ -1,4 +1,7 @@
 import { Bell, Search, User, ChevronDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,7 +20,25 @@ interface HeaderProps {
   onLogout: () => void;
 }
 
+function useNotificacoes() {
+  return useQuery({
+    queryKey: ['notificacoes-quinquenios'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quinquenios')
+        .select('id, numero, data_fim_ajustada, servidores(nome)')
+        .eq('status', 'ADQUIRIDO_SUGERIDO')
+        .order('data_fim_ajustada', { ascending: true })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
 export function Header({ userName, userRole, onLogout }: HeaderProps) {
+  const navigate = useNavigate();
+  const { data: notificacoes = [] } = useNotificacoes();
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card px-6">
       {/* Search */}
