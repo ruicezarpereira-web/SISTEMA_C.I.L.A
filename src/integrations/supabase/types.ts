@@ -648,6 +648,10 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_rh: { Args: never; Returns: boolean }
+      recalcular_cadeia_servidor: {
+        Args: { _servidor_id: string }
+        Returns: undefined
+      }
       recalcular_quinquenio: {
         Args: { _quinquenio_id: string }
         Returns: undefined
