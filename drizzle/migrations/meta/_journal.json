@@ -64,6 +64,13 @@
       "when": 1791092243044,
       "tag": "0008_seed_vinculos_com_direito",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791172046049,
+      "tag": "0009_recalcular_cadeia_servidor",
+      "breakpoints": true
     }
   ]
 }
