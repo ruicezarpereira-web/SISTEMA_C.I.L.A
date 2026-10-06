@@ -53,12 +53,42 @@ export function Header({ userName, userRole, onLogout }: HeaderProps) {
       {/* Right side */}
       <div className="flex items-center gap-4">
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-muted-foreground" />
-          <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-destructive">
-            3
-          </Badge>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+              {notificacoes.length > 0 && (
+                <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-destructive">
+                  {notificacoes.length}
+                </Badge>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuLabel>Notificações</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {notificacoes.length === 0 ? (
+              <DropdownMenuItem disabled className="text-muted-foreground">
+                Nenhuma notificação no momento
+              </DropdownMenuItem>
+            ) : (
+              notificacoes.map((n) => (
+                <DropdownMenuItem
+                  key={n.id}
+                  className="flex flex-col items-start gap-1"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  <span className="text-sm font-medium">
+                    Quinquênio adquirido aguardando decisão
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {(n.servidores as { nome?: string } | null)?.nome ?? 'Servidor'} — {n.numero}º quinquênio
+                  </span>
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User Menu */}
         <DropdownMenu>
