@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import {
   parsePlanilhaGeral,
+  TODAS_AS_ABAS,
+  type AbasImportacao,
   type ParsePlanilhaResult,
   type OcorrenciaPlanilha,
 } from './import-planilha-geral';
@@ -17,8 +19,29 @@ import {
  *   responde apenas a UPDATE de status).
  */
 
+export type ModoImportacao = 'COMPLETA' | 'SERVIDORES' | 'EVENTOS';
+
+export interface ReconciliacaoEventos {
+  novas: number;
+  existentes: number;
+  ignoradasExclusao: number;
+  comErro: number;
+}
+
 export interface ImportSummary {
   dryRun: boolean;
+  modo: ModoImportacao;
+  /** por tipo de linha (afastamentos/faltas): novas, já existentes, ignoradas por exclusão manual, com erro */
+  reconciliacao: { afastamentos: ReconciliacaoEventos; faltas: ReconciliacaoEventos } | null;
+  /** ids das ocorrências inseridas nesta execução */
+  ocorrenciasInseridasIds: string[];
+  /** eventos IMPORTADO ativos, no intervalo do arquivo, sem correspondência na planilha */
+  eventosAusentesNaPlanilha: string[];
+  /** modo Atualizar servidores */
+  servidoresNovos: number;
+  servidoresAtualizados: number;
+  alteracoesCadastrais: number;
+  servidoresAusentesNaPlanilha: string[];
   abasEncontradas: Record<string, string | null>;
   servidores: number;
   matriculas: number;
@@ -64,13 +87,18 @@ function contarPorChave(chaves: (string | null)[]) {
 
 export async function importarPlanilhaGeral(
   file: File,
-  opts: { dryRun: boolean; onProgress?: (pct: number, etapa: string) => void }
+  opts: { dryRun: boolean; modo?: ModoImportacao; onProgress?: (pct: number, etapa: string) => void }
 ): Promise<ImportSummary> {
   const { dryRun, onProgress } = opts;
+  const modo = opts.modo ?? 'COMPLETA';
   const progresso = (p: number, etapa: string) => onProgress?.(p, etapa);
 
   progresso(5, 'Lendo a planilha');
-  const parsed: ParsePlanilhaResult = await parsePlanilhaGeral(file);
+  const abas: AbasImportacao =
+    modo === 'COMPLETA' ? TODAS_AS_ABAS
+    : modo === 'SERVIDORES' ? { servidores: true, processos: false, afastamentos: false, faltas: false }
+    : { servidores: false, processos: false, afastamentos: true, faltas: true };
+  const parsed: ParsePlanilhaResult = await parsePlanilhaGeral(file, abas);
   const erros = [...parsed.erros];
 
   const totalGozos = parsed.servidores.reduce(
@@ -85,6 +113,14 @@ export async function importarPlanilhaGeral(
 
   const resumo: ImportSummary = {
     dryRun,
+    modo,
+    reconciliacao: null,
+    ocorrenciasInseridasIds: [],
+    eventosAusentesNaPlanilha: [],
+    servidoresNovos: 0,
+    servidoresAtualizados: 0,
+    alteracoesCadastrais: 0,
+    servidoresAusentesNaPlanilha: [],
     abasEncontradas: parsed.abasEncontradas,
     servidores: parsed.servidores.length,
     matriculas: parsed.servidores.filter((s) => s.matricula).length,
@@ -176,6 +212,9 @@ export async function importarPlanilhaGeral(
       .sort((x, y) => y[1] - x[1])
       .map(([v, n]) => `${v}: ${n}`);
   }
+
+  if (modo === 'SERVIDORES') return atualizarServidores(parsed, resumo, dryRun, progresso);
+  if (modo === 'EVENTOS') return atualizarEventos(parsed, resumo, dryRun, progresso);
 
   if (dryRun) {
     progresso(100, 'Simulação concluída');
@@ -408,17 +447,6 @@ export async function importarPlanilhaGeral(
     })
     .filter(Boolean) as Record<string, unknown>[];
 
-  await emLotes(ocorrAfast, async (lote) => {
-    const { error } = await supabase
-      .from('ocorrencias')
-      .upsert(lote as never, {
-        onConflict: 'servidor_id,tipo,data_inicio,data_fim,quantidade_dias',
-        ignoreDuplicates: true,
-      });
-    if (error) erros.push(`Afastamentos: ${error.message}`);
-    else gravados.afastamentos += lote.length;
-  });
-
   // ---- 4. faltas (pós 06/2019 com dias) -> ocorrencias; resto -> legado
   progresso(90, 'Gravando faltas');
   const ocorrFaltas = parsed.faltas
@@ -432,16 +460,19 @@ export async function importarPlanilhaGeral(
     })
     .filter(Boolean) as Record<string, unknown>[];
 
-  await emLotes(ocorrFaltas, async (lote) => {
-    const { error } = await supabase
-      .from('ocorrencias')
-      .upsert(lote as never, {
-        onConflict: 'servidor_id,tipo,data_inicio,data_fim,quantidade_dias',
-        ignoreDuplicates: true,
-      });
-    if (error) erros.push(`Faltas: ${error.message}`);
-    else gravados.faltas += lote.length;
-  });
+  {
+    const rec = await reconciliarOcorrencias(
+      ocorrAfast as unknown as OcorrenciaGravar[],
+      ocorrFaltas as unknown as OcorrenciaGravar[],
+      false,
+      erros
+    );
+    resumo.reconciliacao = rec.reconciliacao;
+    resumo.ocorrenciasInseridasIds = rec.idsInseridos;
+    resumo.eventosAusentesNaPlanilha = rec.ausentes;
+    gravados.afastamentos = rec.reconciliacao.afastamentos.novas;
+    gravados.faltas = rec.reconciliacao.faltas.novas;
+  }
 
   const legado = parsed.faltasLegado.map((f) => ({
     servidor_id: f.matricula ? matToId.get(f.matricula) ?? null : null,
