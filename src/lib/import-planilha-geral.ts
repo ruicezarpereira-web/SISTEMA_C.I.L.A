@@ -308,7 +308,19 @@ export function parseCompetencia(valor: unknown): { ano: number; mes: number; pr
 
 // ---------------------------------------------------------------- parser
 
-export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResult> {
+export interface AbasImportacao {
+  servidores: boolean;
+  processos: boolean;
+  afastamentos: boolean;
+  faltas: boolean;
+}
+
+export const TODAS_AS_ABAS: AbasImportacao = { servidores: true, processos: true, afastamentos: true, faltas: true };
+
+export async function parsePlanilhaGeral(
+  file: File,
+  abas: AbasImportacao = TODAS_AS_ABAS
+): Promise<ParsePlanilhaResult> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { cellDates: true });
 
@@ -338,7 +350,9 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
   };
 
   // ---------------- Aba 4.Dados de Servidores (cabeçalho na linha 1)
-  if (!abaServidores) {
+  if (!abas.servidores) {
+    // aba não usada neste modo
+  } else if (!abaServidores) {
     erros.push('Aba "4.Dados de Servidores" não encontrada na planilha.');
   } else {
     const ws = wb.Sheets[abaServidores];
@@ -447,7 +461,9 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
 
   // ---------------- Aba 2. Controle de Processos (CABEÇALHO NA LINHA 2)
   const situacoesNaoMapeadas = new Map<string, number>();
-  if (!abaProcessos) {
+  if (!abas.processos) {
+    // aba não usada neste modo
+  } else if (!abaProcessos) {
     erros.push('Aba "2. Controle de Processos" não encontrada na planilha.');
   } else {
     const rows = lerAba(wb, abaProcessos, 2);
@@ -532,7 +548,9 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
   // ---------------- Aba 7.Afastamentos (cabeçalho na linha 1)
   const motivosNaoMapeados = new Map<string, number>();
   const motivosForaDeEscopo = new Map<string, number>();
-  if (!abaAfastamentos) {
+  if (!abas.afastamentos) {
+    // aba não usada neste modo
+  } else if (!abaAfastamentos) {
     erros.push('Aba "7.Afastamentos" não encontrada na planilha.');
   } else {
     const matriz = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[abaAfastamentos], {
@@ -613,7 +631,9 @@ export async function parsePlanilhaGeral(file: File): Promise<ParsePlanilhaResul
   }
 
   // ---------------- Aba 3.Registro de Faltas
-  if (!abaFaltas) {
+  if (!abas.faltas) {
+    // aba não usada neste modo
+  } else if (!abaFaltas) {
     erros.push('Aba "3.Registro de Faltas" não encontrada na planilha.');
   } else {
     const rows = lerAba(wb, abaFaltas, 1);

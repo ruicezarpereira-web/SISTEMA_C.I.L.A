@@ -330,8 +330,12 @@ export type Database = {
           data_inicio: string
           dias_acrescimo: number
           documento_referencia: string | null
+          excluida_em: string | null
+          excluida_por: string | null
           id: string
+          motivo_exclusao: string | null
           observacoes: string | null
+          origem: string
           quantidade_dias: number
           servidor_id: string
           tipo: string
@@ -342,8 +346,12 @@ export type Database = {
           data_inicio: string
           dias_acrescimo?: number
           documento_referencia?: string | null
+          excluida_em?: string | null
+          excluida_por?: string | null
           id?: string
+          motivo_exclusao?: string | null
           observacoes?: string | null
+          origem?: string
           quantidade_dias?: number
           servidor_id: string
           tipo: string
@@ -354,8 +362,12 @@ export type Database = {
           data_inicio?: string
           dias_acrescimo?: number
           documento_referencia?: string | null
+          excluida_em?: string | null
+          excluida_por?: string | null
           id?: string
+          motivo_exclusao?: string | null
           observacoes?: string | null
+          origem?: string
           quantidade_dias?: number
           servidor_id?: string
           tipo?: string
@@ -534,10 +546,12 @@ export type Database = {
       }
       servidores: {
         Row: {
+          ativo: boolean
           cargo: string | null
           cpf: string | null
           created_at: string
           data_admissao: string
+          data_inativacao: string | null
           data_nascimento: string | null
           email: string | null
           endereco: string | null
@@ -545,6 +559,7 @@ export type Database = {
           id: string
           lotacao: string | null
           matricula: string
+          motivo_inativacao: string | null
           nome: string
           registro_unico: string
           rg: string | null
@@ -554,10 +569,12 @@ export type Database = {
           vinculo: string | null
         }
         Insert: {
+          ativo?: boolean
           cargo?: string | null
           cpf?: string | null
           created_at?: string
           data_admissao: string
+          data_inativacao?: string | null
           data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
@@ -565,6 +582,7 @@ export type Database = {
           id?: string
           lotacao?: string | null
           matricula: string
+          motivo_inativacao?: string | null
           nome: string
           registro_unico: string
           rg?: string | null
@@ -574,10 +592,12 @@ export type Database = {
           vinculo?: string | null
         }
         Update: {
+          ativo?: boolean
           cargo?: string | null
           cpf?: string | null
           created_at?: string
           data_admissao?: string
+          data_inativacao?: string | null
           data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
@@ -585,6 +605,7 @@ export type Database = {
           id?: string
           lotacao?: string | null
           matricula?: string
+          motivo_inativacao?: string | null
           nome?: string
           registro_unico?: string
           rg?: string | null
@@ -594,6 +615,47 @@ export type Database = {
           vinculo?: string | null
         }
         Relationships: []
+      }
+      servidores_alteracoes: {
+        Row: {
+          alterado_em: string
+          alterado_por: string | null
+          campo: string
+          id: string
+          origem: string
+          servidor_id: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          alterado_em?: string
+          alterado_por?: string | null
+          campo: string
+          id?: string
+          origem?: string
+          servidor_id: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          alterado_em?: string
+          alterado_por?: string | null
+          campo?: string
+          id?: string
+          origem?: string
+          servidor_id?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servidores_alteracoes_servidor_id_fkey"
+            columns: ["servidor_id"]
+            isOneToOne: false
+            referencedRelation: "servidores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
