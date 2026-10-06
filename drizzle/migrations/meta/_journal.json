@@ -71,6 +71,13 @@
       "when": 1791172046049,
       "tag": "0009_recalcular_cadeia_servidor",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791263722330,
+      "tag": "0010_0010_servidor_ativo_origem_ocorrencias_alteracoes",
+      "breakpoints": true
     }
   ]
 }
